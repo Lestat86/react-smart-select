@@ -1,5 +1,5 @@
+import { render, screen, act, cleanup } from '@testing-library/react';
 import React, { FunctionComponent, useState } from 'react';
-import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { SelectProps } from '../src/typings';
 import { OPTION_CLASS } from '../src/constants';
@@ -18,11 +18,17 @@ const options = [
 ];
 
 const WrapSelect: FunctionComponent<WrapProps> = (props) => {
-  const [ state, setState ] = useState(props.value);
+  const { value, ...rest }  = props;
+  const [ state, setState ] = useState(value);
+
+  /* eslint-disable react/jsx-props-no-spreading */
 
   return (
-    <Select multi value={state} options={options} onChange={setState} />
+    <Select multi {...rest} value={state} options={options}
+      onChange={setState} />
   );
+
+  /* eslint-enable */
 };
 
 function isSelected(text: string) {
@@ -40,6 +46,12 @@ function isSelected(text: string) {
 // ---------------------------------------------------------------------
 
 describe('the multi select', () => {
+  let events;
+
+  before(() => {
+    events = userEvent.setup();
+  });
+
   it('renders an empty value', () => {
     render(<WrapSelect />);
 
@@ -48,6 +60,19 @@ describe('the multi select', () => {
     expect(isSelected('alice')).to.eq(false);
     expect(isSelected('bob')).to.eq(false);
     expect(isSelected('carol')).to.eq(false);
+    cleanup();
+  });
+
+  it('renders the placeholder value', () => {
+    render(<WrapSelect placeholder="foo" />);
+
+    expect(screen.queryByText('foo')).to.be.instanceof(HTMLElement);
+    expect(screen.queryByText('alice, bob, carol')).to.eq(null);
+
+    expect(isSelected('alice')).to.eq(false);
+    expect(isSelected('bob')).to.eq(false);
+    expect(isSelected('carol')).to.eq(false);
+    cleanup();
   });
 
   it('renders the default value (1)', () => {
@@ -58,6 +83,7 @@ describe('the multi select', () => {
     expect(isSelected('alice')).to.eq(true);
     expect(isSelected('bob')).to.eq(true);
     expect(isSelected('carol')).to.eq(true);
+    cleanup();
   });
 
   it('renders the default value (2)', () => {
@@ -74,15 +100,24 @@ describe('the multi select', () => {
     expect(isSelected('alice')).to.eq(false);
     expect(isSelected('bob')).to.eq(true);
     expect(isSelected('carol')).to.eq(true);
+    cleanup();
   });
 
-  it('deselects the whole list', () => {
+  it('deselects the whole list', async () => {
     render(<WrapSelect value={options} />);
 
-    userEvent.click(screen.getByText('alice, bob, carol'));
-    userEvent.click(screen.getByText('alice', option));
-    userEvent.click(screen.getByText('bob', option));
-    userEvent.click(screen.getByText('carol', option));
+    await act(async () => {
+      await events.click(screen.getByText('alice, bob, carol'));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('alice', option));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('bob', option));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('carol', option));
+    });
 
     expect(isSelected('alice')).to.eq(false);
     expect(isSelected('bob')).to.eq(false);
@@ -90,25 +125,38 @@ describe('the multi select', () => {
     expect(screen.queryByText('alice, bob, carol')).to.eq(null);
   });
 
-  it('selects the whole list', () => {
+  it('selects the whole list', async () => {
     render(<WrapSelect />);
 
-    userEvent.click(document.getElementsByTagName('button')[0]);
-    userEvent.click(screen.getByText('alice', option));
-    userEvent.click(screen.getByText('carol', option));
-    userEvent.click(screen.getByText('bob', option));
+    await act(async () => {
+      await events.click(document.getElementsByTagName('button')[0]);
+    });
+    await act(async () => {
+      await events.click(screen.getByText('alice', option));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('carol', option));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('bob', option));
+    });
 
+    expect(screen.queryByText('alice, bob, carol')).to.be.instanceof(HTMLElement);
     expect(isSelected('alice')).to.eq(true);
     expect(isSelected('bob')).to.eq(true);
     expect(isSelected('carol')).to.eq(true);
     expect(screen.queryByText('alice, bob, carol')).to.be.instanceof(HTMLElement);
   });
 
-  it('selects bob', () => {
+  it('selects bob', async () => {
     render(<WrapSelect />);
 
-    userEvent.click(document.getElementsByTagName('button')[0]);
-    userEvent.click(screen.getByText('bob', option));
+    await act(async () => {
+      await events.click(document.getElementsByTagName('button')[0]);
+    });
+    await act(async () => {
+      await events.click(screen.getByText('bob', option));
+    });
 
     expect(isSelected('alice')).to.eq(false);
     expect(isSelected('bob')).to.eq(true);
@@ -116,11 +164,15 @@ describe('the multi select', () => {
     expect(screen.queryAllByText('bob')).to.have.length(2);
   });
 
-  it('deselects bob', () => {
+  it('deselects bob', async () => {
     render(<WrapSelect value={options} />);
 
-    userEvent.click(screen.getByText('alice, bob, carol'));
-    userEvent.click(screen.getByText('bob', option));
+    await act(async () => {
+      await events.click(screen.getByText('alice, bob, carol'));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('bob', option));
+    });
 
     expect(isSelected('alice')).to.eq(true);
     expect(isSelected('bob')).to.eq(false);
@@ -128,12 +180,18 @@ describe('the multi select', () => {
     expect(screen.queryByText('alice, carol')).to.be.instanceof(HTMLElement);
   });
 
-  it('deselects bob and carol', () => {
+  it('deselects bob and carol', async () => {
     render(<WrapSelect value={options} />);
 
-    userEvent.click(screen.getByText('alice, bob, carol'));
-    userEvent.click(screen.getByText('bob', option));
-    userEvent.click(screen.getByText('carol', option));
+    await act(async () => {
+      await events.click(screen.getByText('alice, bob, carol'));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('bob', option));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('carol', option));
+    });
 
     expect(isSelected('alice')).to.eq(true);
     expect(isSelected('bob')).to.eq(false);
@@ -141,12 +199,18 @@ describe('the multi select', () => {
     expect(screen.queryAllByText('alice')).to.have.length(2);
   });
 
-  it('deselects bob and selects him again', () => {
+  it('deselects bob and selects him again', async () => {
     render(<WrapSelect value={options} />);
 
-    userEvent.click(screen.getByText('alice, bob, carol'));
-    userEvent.click(screen.getByText('bob', option));
-    userEvent.click(screen.getByText('bob', option));
+    await act(async () => {
+      await events.click(screen.getByText('alice, bob, carol'));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('bob', option));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('bob', option));
+    });
 
     expect(isSelected('alice')).to.eq(true);
     expect(isSelected('bob')).to.eq(true);
@@ -154,13 +218,21 @@ describe('the multi select', () => {
     expect(screen.queryByText('alice, bob, carol')).to.be.instanceof(HTMLElement);
   });
 
-  it('deselects and selects a couple of times', () => {
+  it('deselects and selects a couple of times', async () => {
     render(<WrapSelect value={options} />);
 
-    userEvent.click(screen.getByText('alice, bob, carol'));
-    userEvent.click(screen.getByText('bob', option));
-    userEvent.click(screen.getByText('carol', option));
-    userEvent.click(screen.getByText('bob', option));
+    await act(async () => {
+      await events.click(screen.getByText('alice, bob, carol'));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('bob', option));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('carol', option));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('bob', option));
+    });
 
     expect(isSelected('alice')).to.eq(true);
     expect(isSelected('bob')).to.eq(true);

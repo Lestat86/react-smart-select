@@ -1,3 +1,18 @@
+## [1.3.0] - 2022-05-11
+
+### Changed
+
+- Switched from popper-js to floating-ui
+- Bumped minimum node version to 14.x
+- Tested with React 18
+- Misc fixes and improvements
+
+## [1.2.0] - 2022-03-09
+
+### Added
+
+- Added the `placeholder` prop. You could do the same with the `formatLabel` callback, but it was probably not immediately obvious and maybe a bit overkill for the simple cases.
+
 ## [1.1.0] - 2022-01-05
 
 ### Changed

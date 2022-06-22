@@ -1,5 +1,5 @@
+import { render, screen, cleanup, act } from '@testing-library/react';
 import React, { FunctionComponent, useState } from 'react';
-import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { SelectProps } from '../src/typings';
 import { OPTION_CLASS } from '../src/constants';
@@ -19,11 +19,17 @@ const options = [
 ];
 
 const WrapSelect: FunctionComponent<WrapProps> = (props) => {
-  const [ state, setState ] = useState(props.value);
+  const { value, ...rest }  = props;
+  const [ state, setState ] = useState(value);
+
+  /* eslint-disable react/jsx-props-no-spreading */
 
   return (
-    <Select toggle value={state} options={options} onChange={setState} />
+    <Select toggle {...rest} value={state} options={options}
+      onChange={setState} />
   );
+
+  /* eslint-enable */
 };
 
 function isSelected(text: string) {
@@ -41,6 +47,12 @@ function isSelected(text: string) {
 // ---------------------------------------------------------------------
 
 describe('the toggle select', () => {
+  let events;
+
+  before(() => {
+    events = userEvent.setup();
+  });
+
   it('renders an empty value', () => {
     render(<WrapSelect />);
 
@@ -50,6 +62,20 @@ describe('the toggle select', () => {
     expect(isSelected('alice')).to.eq(false);
     expect(isSelected('bob')).to.eq(false);
     expect(isSelected('carol')).to.eq(false);
+    cleanup();
+  });
+
+  it('renders the placeholder value', () => {
+    render(<WrapSelect placeholder="foo" />);
+
+    expect(screen.queryByText('foo')).to.be.instanceof(HTMLElement);
+    expect(screen.queryByText('everyone, alice, bob, carol')).to.eq(null);
+
+    expect(isSelected('everyone')).to.eq(false);
+    expect(isSelected('alice')).to.eq(false);
+    expect(isSelected('bob')).to.eq(false);
+    expect(isSelected('carol')).to.eq(false);
+    cleanup();
   });
 
   it('renders the default value (1)', () => {
@@ -61,6 +87,7 @@ describe('the toggle select', () => {
     expect(isSelected('alice')).to.eq(true);
     expect(isSelected('bob')).to.eq(true);
     expect(isSelected('carol')).to.eq(true);
+    cleanup();
   });
 
   it('renders the default value (2)', () => {
@@ -78,13 +105,18 @@ describe('the toggle select', () => {
     expect(isSelected('alice')).to.eq(false);
     expect(isSelected('bob')).to.eq(true);
     expect(isSelected('carol')).to.eq(true);
+    cleanup();
   });
 
-  it('deselects the whole list', () => {
+  it('deselects the whole list', async () => {
     render(<WrapSelect value={options} />);
 
-    userEvent.click(screen.getByText('everyone, alice, bob, carol'));
-    userEvent.click(screen.getByText('everyone', option));
+    await act(async () => {
+      await events.click(screen.getByText('everyone, alice, bob, carol'));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('everyone', option));
+    });
 
     expect(isSelected('everyone')).to.eq(false);
     expect(isSelected('alice')).to.eq(false);
@@ -93,12 +125,18 @@ describe('the toggle select', () => {
     expect(screen.queryByText('everyone, alice, bob, carol')).to.eq(null);
   });
 
-  it('selects the whole list (1)', () => {
+  it('selects the whole list (1)', async () => {
     render(<WrapSelect value={options} />);
 
-    userEvent.click(screen.getByText('everyone, alice, bob, carol'));
-    userEvent.click(screen.getByText('everyone', option));
-    userEvent.click(screen.getByText('everyone', option));
+    await act(async () => {
+      await events.click(screen.getByText('everyone, alice, bob, carol'));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('everyone', option));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('everyone', option));
+    });
 
     expect(isSelected('everyone')).to.eq(true);
     expect(isSelected('alice')).to.eq(true);
@@ -107,14 +145,24 @@ describe('the toggle select', () => {
     expect(screen.queryByText('everyone, alice, bob, carol')).to.be.instanceof(HTMLElement);
   });
 
-  it('selects the whole list (2)', () => {
+  it('selects the whole list (2)', async () => {
     render(<WrapSelect value={options} />);
 
-    userEvent.click(screen.getByText('everyone, alice, bob, carol'));
-    userEvent.click(screen.getByText('everyone', option));
-    userEvent.click(screen.getByText('alice', option));
-    userEvent.click(screen.getByText('bob', option));
-    userEvent.click(screen.getByText('carol', option));
+    await act(async () => {
+      await events.click(screen.getByText('everyone, alice, bob, carol'));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('everyone', option));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('alice', option));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('bob', option));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('carol', option));
+    });
 
     expect(isSelected('everyone')).to.eq(true);
     expect(isSelected('alice')).to.eq(true);
@@ -123,12 +171,18 @@ describe('the toggle select', () => {
     expect(screen.queryByText('everyone, alice, bob, carol')).to.be.instanceof(HTMLElement);
   });
 
-  it('selects bob', () => {
+  it('selects bob', async () => {
     render(<WrapSelect value={options} />);
 
-    userEvent.click(screen.getByText('everyone, alice, bob, carol'));
-    userEvent.click(screen.getByText('everyone', option));
-    userEvent.click(screen.getByText('bob', option));
+    await act(async () => {
+      await events.click(screen.getByText('everyone, alice, bob, carol'));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('everyone', option));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('bob', option));
+    });
 
     expect(isSelected('everyone')).to.eq(false);
     expect(isSelected('alice')).to.eq(false);
@@ -137,11 +191,15 @@ describe('the toggle select', () => {
     expect(screen.queryAllByText('bob')).to.have.length(2);
   });
 
-  it('deselects bob', () => {
+  it('deselects bob', async () => {
     render(<WrapSelect value={options} />);
 
-    userEvent.click(screen.getByText('everyone, alice, bob, carol'));
-    userEvent.click(screen.getByText('bob', option));
+    await act(async () => {
+      await events.click(screen.getByText('everyone, alice, bob, carol'));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('bob', option));
+    });
 
     expect(isSelected('everyone')).to.eq(false);
     expect(isSelected('alice')).to.eq(true);
@@ -150,12 +208,18 @@ describe('the toggle select', () => {
     expect(screen.queryByText('alice, carol')).to.be.instanceof(HTMLElement);
   });
 
-  it('deselects bob and carol', () => {
+  it('deselects bob and carol', async () => {
     render(<WrapSelect value={options} />);
 
-    userEvent.click(screen.getByText('everyone, alice, bob, carol'));
-    userEvent.click(screen.getByText('bob', option));
-    userEvent.click(screen.getByText('carol', option));
+    await act(async () => {
+      await events.click(screen.getByText('everyone, alice, bob, carol'));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('bob', option));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('carol', option));
+    });
 
     expect(isSelected('everyone')).to.eq(false);
     expect(isSelected('alice')).to.eq(true);
@@ -164,13 +228,21 @@ describe('the toggle select', () => {
     expect(screen.queryAllByText('alice')).to.have.length(2);
   });
 
-  it('deselects everyone', () => {
+  it('deselects everyone', async () => {
     render(<WrapSelect value={options} />);
 
-    userEvent.click(screen.getByText('everyone, alice, bob, carol'));
-    userEvent.click(screen.getByText('bob', option));
-    userEvent.click(screen.getByText('carol', option));
-    userEvent.click(screen.getByText('alice', option));
+    await act(async () => {
+      await events.click(screen.getByText('everyone, alice, bob, carol'));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('bob', option));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('carol', option));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('alice', option));
+    });
 
     expect(isSelected('everyone')).to.eq(false);
     expect(isSelected('alice')).to.eq(false);
@@ -179,12 +251,18 @@ describe('the toggle select', () => {
     expect(screen.queryByText('everyone, alice, bob, carol')).to.eq(null);
   });
 
-  it('deselects bob and selects him again', () => {
+  it('deselects bob and selects him again', async () => {
     render(<WrapSelect value={options} />);
 
-    userEvent.click(screen.getByText('everyone, alice, bob, carol'));
-    userEvent.click(screen.getByText('bob', option));
-    userEvent.click(screen.getByText('bob', option));
+    await act(async () => {
+      await events.click(screen.getByText('everyone, alice, bob, carol'));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('bob', option));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('bob', option));
+    });
 
     expect(isSelected('everyone')).to.eq(true);
     expect(isSelected('alice')).to.eq(true);
@@ -193,13 +271,21 @@ describe('the toggle select', () => {
     expect(screen.queryByText('everyone, alice, bob, carol')).to.be.instanceof(HTMLElement);
   });
 
-  it('deselects and selects a couple of times', () => {
+  it('deselects and selects a couple of times', async () => {
     render(<WrapSelect value={options} />);
 
-    userEvent.click(screen.getByText('everyone, alice, bob, carol'));
-    userEvent.click(screen.getByText('bob', option));
-    userEvent.click(screen.getByText('carol', option));
-    userEvent.click(screen.getByText('bob', option));
+    await act(async () => {
+      await events.click(screen.getByText('everyone, alice, bob, carol'));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('bob', option));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('carol', option));
+    });
+    await act(async () => {
+      await events.click(screen.getByText('bob', option));
+    });
 
     expect(isSelected('everyone')).to.eq(false);
     expect(isSelected('alice')).to.eq(true);
